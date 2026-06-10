@@ -1,0 +1,6 @@
+{
+  "name": "水平思考クイズゲーム",
+  "description": "「ウミガメのスープ」などの有名な名作パズルから、AIが無限に自動生成するオリジナルパズルまで遊べる、フルスタックの水平思考（シチュエーション）クイズゲームです。質問に対して「はい」「いいえ」「関係ありません」でAIが答え、真相に近づく進捗度（％）や質問履歴、回答判定機能なども搭載されています。",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
