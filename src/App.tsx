@@ -207,8 +207,21 @@ export default function App() {
       saveGameState(selectedPuzzle.id, updatedHistory, highestProgress);
       setQuestionInput("");
 
+      // If automatically solved
+      if (result.isCorrect) {
+        const solvedObj = {
+          isCorrect: true,
+          feedback: result.feedback,
+          explanation: selectedPuzzle.solution
+        };
+        setSolveResult(solvedObj);
+        localStorage.setItem(`solved-${selectedPuzzle.id}`, JSON.stringify(solvedObj));
+        setCurrentProgress(100);
+        localStorage.setItem(`progress-${selectedPuzzle.id}`, "100");
+      }
+
       // If warning triggers, provide feedback helper
-      if (containsOpenQuestionWord) {
+      if (containsOpenQuestionWord && !result.isCorrect) {
         setAskError("💡 AIヒント: はい/いいえで答えられない疑問詞(なぜ、何等)が含まれていたため、判定が「関係ありません」等に偏りやすい傾向があります。");
       }
     } catch (err: any) {
@@ -830,7 +843,7 @@ export default function App() {
                             >
                               <HeartCrack className="w-4 h-4 shrink-0 mt-0.5 text-rose-400" />
                               <div>
-                                <p className="font-bold">まだ何かが足りないようです...</p>
+                                <p className="font-bold">真相の核心にあと一歩足りないようです...</p>
                                 <p className="text-[11px] mt-1 text-slate-350 leading-relaxed">
                                   {solveResult.feedback}
                                 </p>
@@ -841,22 +854,21 @@ export default function App() {
                         
                       </div>
 
+                      {/* History List Section */}
+                      <div className="p-5 md:p-6 rounded-2xl bg-slate-900 border border-slate-800 space-y-4 shadow-xl">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <MessageSquare className="w-5 h-5 text-indigo-400" />
+                            <h3 className="font-bold text-slate-200">これまでの質問履歴（{history.length}件）</h3>
+                          </div>
+                          <span className="text-xs text-slate-500">新しい質問が一番上に表示されます</span>
+                        </div>
+
+                        <HistoryList history={history} />
+                        <div ref={historyEndRef} />
+                      </div>
                     </div>
                   )}
-
-                  {/* History List Section */}
-                  <div className="space-y-4 pt-4 border-t border-slate-850">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <MessageSquare className="w-5 h-5 text-indigo-400" />
-                        <h3 className="font-bold text-slate-200">これまでの質問履歴（{history.length}件）</h3>
-                      </div>
-                      <span className="text-xs text-slate-500">新しい質問が一番上に表示されます</span>
-                    </div>
-
-                    <HistoryList history={history} />
-                    <div ref={historyEndRef} />
-                  </div>
 
                 </div>
 

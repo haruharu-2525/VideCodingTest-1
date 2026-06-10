@@ -86,27 +86,25 @@ app.post("/api/puzzles/generate", async (req, res) => {
 
     const newPuzzle = {
       id: `generated-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      title: `${data.title} (AI生成)`,
-      category: category as any,
-      isGenerated: true,
+      title: data.title,
       story: data.story,
       solution: data.solution,
       hint: data.hint,
+      category,
+      difficulty: "普通",
+      isGenerated: true,
     };
 
-    // Store in-memory for the session so it can be referenced
     serverPuzzles.push(newPuzzle);
-
     res.json(newPuzzle);
   } catch (error: any) {
-    console.error("Puzzle generation error:", error);
-    res.status(500).json({ error: error.message || "パズルの生成に失敗しました。" });
+    res.status(500).json({ error: error.message || "生成に失敗しました。" });
   }
 });
 
-// 3. Evaluate User's Question ("Yes/No/Irrelevant" + Clue + Progress Calculating)
+// 3. Ask a question regarding the puzzle
 app.post("/api/puzzles/ask", async (req, res) => {
-  const { puzzleId, question, history = [] } = req.body;
+  const { puzzleId, question, history } = req.body;
 
   try {
     const puzzle = serverPuzzles.find((p) => p.id === puzzleId);
@@ -114,9 +112,8 @@ app.post("/api/puzzles/ask", async (req, res) => {
       return res.status(404).json({ error: "指定されたパズルが見つかりません。" });
     }
 
-    // Format previous history
     const historyText = history
-      .map((h: any) => `質問: ${h.question} => 回答: ${h.answer} (${h.explanation})`)
+      ?.map((h: any) => `Q: ${h.question}\nA: ${h.answer} (${h.explanation})`)
       .join("\n");
 
     const prompt = `あなたは「水平思考クイズ」の親切なゲームマスターです。
@@ -136,8 +133,8 @@ ${historyText || "なし"}
 1. 回答(answer)は、厳密に以下のいずれかでなければなりません。
    - "はい" : 質問が真相に合致している、あるいは正しい方向を向いている場合。
    - "いいえ" : 質問が真相と矛盾している、あるいは間違った方向を向いている場合。
-   - "ゲームに関係ありません" : 質問の答えが「はい」でも「いいえ」でも真相への到達に全く影響しない場合、あるいはどうでもいい不要な詳細を尋ねている場合。
-2. 補足解説(explanation): 「はい」「いいえ」を補強する一言（20文字以内）。真相そのものを完全にネタバレしてはいけませんが、プレイヤーを置いてけぼりにしないための小さな手助けや、質問を分かりやすく噛み砕いた解説をします。例:「（はい：男はその言葉を信じていました）」「（いいえ：男は歩いて移動していました）」など。
+   - "ゲームに関係ありません" : 質問の答えが「はい / いいえ」で答えられない（例: 「犯人の名前は何ですか？」）か、または真相解明に全く直接関係のない情報。
+2. 補足(explanation): 「はい」「いいえ」だけではプレイヤーが行き詰まる可能性があるため、回答を補助する15文字〜20文字以内の補足コメント（例：「（はい：男は歩いて移動していました）」「（いいえ：男は10階ではなく1階に行きました）」など）。真相を直接言及してはいけません。
 3. 進捗率(progress): 0から100の数値（整数）。これまでの質問履歴とこの最新の質問を踏まえ、プレイヤーがパズルの「核心（真相）」にどれだけ近づいているかを客観的に評価してください。
    - 初期の質問や関係ない質問: 0 〜 15%
    - 登場人物の状況や前提条件を絞り込めた: 20 〜 40%
@@ -148,9 +145,9 @@ ${historyText || "なし"}
 
 以下のJSON形式で回答してください:
 {
-  "answer": "はい" または "いいえ" または "ゲームに関係ありません",
+  "answer": "はい" | "いいえ" | "ゲームに関係ありません",
   "explanation": "20文字以内の補正カッコ内の一言",
-  "progress": 整数値(0-100)
+  "progress": 整数値(0-95)
 }`;
 
     const response = await ai.models.generateContent({
